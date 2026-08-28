@@ -41,7 +41,7 @@ let electiveScanMode=false;
 /* 掃描結果步驟「調整格線」視窗的狀態 */
 let gridAdjustMode=false,gridAdjustOrigParent=null,gridAdjustOrigNext=null;
 
-const firebaseConfig = {
+const FIREBASE_CONFIG = {
   apiKey: "AIzaSyC1QoBOfORfJ1i3phFVdvnLuyZHhKYLWmc",
   authDomain: "mc-scanner---private.firebaseapp.com",
   projectId: "mc-scanner---private",
@@ -49,7 +49,6 @@ const firebaseConfig = {
   messagingSenderId: "569792530708",
   appId: "1:569792530708:web:b2abf2e7efadf451585a01"
 };
-const FIREBASE_CONFIG = firebaseConfig;
 let db=null,fbConnected=false,fbSaveTimer=null;
 /* YEARS and SUBJECTS are now mutable so teachers can add custom values */
 let YEARS=['2025/2026','2026/2027','2027/2028','2028/2029'];
