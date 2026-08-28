@@ -41,7 +41,14 @@ let electiveScanMode=false;
 /* 掃描結果步驟「調整格線」視窗的狀態 */
 let gridAdjustMode=false,gridAdjustOrigParent=null,gridAdjustOrigNext=null;
 
-const FIREBASE_CONFIG={apiKey:"AIzaSyA70BqWnpIlNi7XoOugAIAsy3uvBmESpUI",authDomain:"mc-checker-9375e.firebaseapp.com",projectId:"mc-checker-9375e",storageBucket:"mc-checker-9375e.firebasestorage.app",messagingSenderId:"1092571434878",appId:"1:1092571434878:web:d7cc0df7423b9f00ff2d2f"};
+const firebaseConfig = {
+  apiKey: "AIzaSyC1QoBOfORfJ1i3phFVdvnLuyZHhKYLWmc",
+  authDomain: "mc-scanner---private.firebaseapp.com",
+  projectId: "mc-scanner---private",
+  storageBucket: "mc-scanner---private.firebasestorage.app",
+  messagingSenderId: "569792530708",
+  appId: "1:569792530708:web:b2abf2e7efadf451585a01"
+};
 let db=null,fbConnected=false,fbSaveTimer=null;
 /* YEARS and SUBJECTS are now mutable so teachers can add custom values */
 let YEARS=['2025/2026','2026/2027','2027/2028','2028/2029'];
