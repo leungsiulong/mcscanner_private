@@ -49,6 +49,7 @@ const firebaseConfig = {
   messagingSenderId: "569792530708",
   appId: "1:569792530708:web:b2abf2e7efadf451585a01"
 };
+const FIREBASE_CONFIG = firebaseConfig;
 let db=null,fbConnected=false,fbSaveTimer=null;
 /* YEARS and SUBJECTS are now mutable so teachers can add custom values */
 let YEARS=['2025/2026','2026/2027','2027/2028','2028/2029'];
