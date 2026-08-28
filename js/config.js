@@ -54,6 +54,13 @@ let db=null,fbConnected=false,fbSaveTimer=null;
 let YEARS=['2025/2026','2026/2027','2027/2028','2028/2029'];
 const GRADES=['中一','中二','中三','中四','中五','中六'];
 /* 級別 → 班別數字（用於選修科：級別數字 + 掃描班別字母 = 原班別，例如 中四 + D = 4D） */
+
+/* ===== 學期選項 =====
+   中六額外提供「模擬考試」；如日後其他級別需要特別學期，直接在 TERMS_EXTRA 加入即可 */
+const TERMS_BASE=['上學期考試','下學期考試','測驗一','測驗二'];
+const TERMS_EXTRA={'中六':['模擬考試']};
+function getTermsForGrade(g){return TERMS_BASE.concat(TERMS_EXTRA[g]||[]);}
+
 const GRADE_NUM_MAP={'中一':'1','中二':'2','中三':'3','中四':'4','中五':'5','中六':'6'};
 let SUBJECTS=['English','中文','數學','通識/公社','綜合科學','物理','化學','生物','地理','歷史','經濟','BAFS','ICT','體育','其他'];
 const STEP_LABELS=['選擇試卷','上載圖片','四角定位','格線校準','掃描結果'];
