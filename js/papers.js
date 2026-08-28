@@ -47,7 +47,8 @@ function renderPaperTabs(){
     card.className='pm-card';
     const grade=getGradeDisplay(p);
     let tags=`<span class="pm-chip pm-chip-grade">${grade}</span>`;
-    tags+=`<span class="pm-chip pm-chip-term">${p.term||''}</span>`;
+    /* 有自訂顯示名稱時，學期標籤改顯示自訂名稱（hover 可看回原本學期） */
+    tags+=`<span class="pm-chip pm-chip-term"${p.displayName?` title="學期：${escAttr(p.term||'')}"`:''}>${getPaperTermDisplay(p)}</span>`;
     if(p.set)tags+=`<span class="pm-chip pm-chip-set">${p.set}</span>`;
     const date=p.createdAt?new Date(p.createdAt).toLocaleDateString('zh-TW'):'';
     const multiCnt=Array.isArray(p.multi)?p.multi.filter(Boolean).length:(p.answerKey||[]).filter(a=>a&&a.length>1).length;
@@ -55,11 +56,95 @@ function renderPaperTabs(){
     card.innerHTML=`<div class="pm-card-top"><div class="pm-card-subject">${p.subject||'—'}</div><div class="pm-card-actions"><button class="btn-icon" onclick="event.stopPropagation();openPaperModal('${p.id}')" title="編輯">✏️</button><button class="btn-icon" onclick="event.stopPropagation();deletePaper('${p.id}')" title="刪除" style="color:rgb(var(--rose))">🗑️</button></div></div><div class="pm-card-tags">${tags}${multiTag}</div><div class="pm-card-footer"><span class="pm-card-q">📝 ${p.totalQ} 題</span><span class="pm-card-date">${date}</span></div>`;
     return card;
   }
-  
+
+  /* ===== 學期選項（中六 → 額外「模擬考試」）與「顯示名稱」欄控制 ===== */
+  /* 依 pGrade 重建 pTerm 的選項；preferred 為想保留/還原的學期值 */
+  function updatePaperTermOptions(preferred){
+    const gs=document.getElementById('pGrade'),ts=document.getElementById('pTerm');
+    if(!gs||!ts)return;
+    const want=(preferred!==undefined&&preferred!==null&&preferred!=='')?preferred:ts.value;
+    const terms=(typeof getTermsForGrade==='function')?getTermsForGrade(gs.value):['上學期考試','下學期考試','測驗一','測驗二'];
+    ts.innerHTML=terms.map(t=>`<option value="${escAttr(t)}">${t}</option>`).join('');
+    ts.value=terms.indexOf(want)>=0?want:terms[0];
+  }
+  /* 只在中六顯示「顯示名稱」欄（如只想在選「模擬考試」時顯示，見下方註解） */
+  function updateDisplayNameRow(){
+    const row=document.getElementById('pDisplayNameRow'),tip=document.getElementById('pDisplayNameTip'),gs=document.getElementById('pGrade'),inp=document.getElementById('pDisplayName');
+    if(!row||!gs||!inp)return;
+    const show=gs.value==='中六';
+    /* 若只想在「模擬考試」時出現，改為：
+       const ts=document.getElementById('pTerm');const show=ts&&ts.value==='模擬考試'; */
+    row.classList.toggle('hidden',!show);
+    if(tip)tip.classList.toggle('hidden',!show);
+    if(!show)inp.value='';
+  }
+  function onPaperGradeChange(){updatePaperTermOptions();updateDisplayNameRow();}
+  function onPaperTermChange(){updateDisplayNameRow();}
+
   /* ===== PAPER MANAGEMENT (CREATE / EDIT) ===== */
-  function openPaperModal(editId){editingPaperId=editId||null;paperFormAK=new Array(80).fill('');paperFormMulti=new Array(80).fill(false);if(editId){const p=papers.find(x=>x.id===editId);if(!p)return;ensureYearOption(p.year);ensureSubjectOption(p.subject);document.getElementById('pmTitle').innerHTML='<span class="card-icon ci-purple" style="width:28px;height:28px;font-size:.8em">✏️</span> 編輯試卷';document.getElementById('savePaperBtn').textContent='💾 更新試卷';document.getElementById('pYear').value=p.year;document.getElementById('pGrade').value=p.grade||p.className||GRADES[0];document.getElementById('pTerm').value=p.term;document.getElementById('pSet').value=p.set||'';document.getElementById('pSubject').value=p.subject||SUBJECTS[0];document.getElementById('pTotalQ').value=p.totalQ;if(p.answerKey)p.answerKey.forEach((a,i)=>paperFormAK[i]=a||'');if(p.multi)p.multi.forEach((m,i)=>paperFormMulti[i]=!!m);else paperFormAK.forEach((a,i)=>{if(a&&a.length>1)paperFormMulti[i]=true;});document.getElementById('pQuickInput').value=paperFormAK.slice(0,p.totalQ).map(a=>(a||'').length>1?a.charAt(0):(a||'')).join('');}else{document.getElementById('pmTitle').innerHTML='<span class="card-icon ci-purple" style="width:28px;height:28px;font-size:.8em">📝</span> 新增試卷';document.getElementById('savePaperBtn').textContent='💾 儲存試卷';document.getElementById('pSet').value='';document.getElementById('pQuickInput').value='';}document.getElementById('pYear').dataset.prev=document.getElementById('pYear').value;document.getElementById('pSubject').dataset.prev=document.getElementById('pSubject').value;buildPaperAKGrid();document.getElementById('soOverlay').classList.add('show');document.getElementById('soPanel').classList.add('show');}
+  function openPaperModal(editId){
+    editingPaperId=editId||null;
+    paperFormAK=new Array(80).fill('');
+    paperFormMulti=new Array(80).fill(false);
+    if(editId){
+      const p=papers.find(x=>x.id===editId);if(!p)return;
+      ensureYearOption(p.year);ensureSubjectOption(p.subject);
+      document.getElementById('pmTitle').innerHTML='<span class="card-icon ci-purple" style="width:28px;height:28px;font-size:.8em">✏️</span> 編輯試卷';
+      document.getElementById('savePaperBtn').textContent='💾 更新試卷';
+      document.getElementById('pYear').value=p.year;
+      document.getElementById('pGrade').value=p.grade||p.className||GRADES[0];
+      updatePaperTermOptions(p.term);
+      document.getElementById('pDisplayName').value=p.displayName||'';
+      updateDisplayNameRow();
+      document.getElementById('pSet').value=p.set||'';
+      document.getElementById('pSubject').value=p.subject||SUBJECTS[0];
+      document.getElementById('pTotalQ').value=p.totalQ;
+      if(p.answerKey)p.answerKey.forEach((a,i)=>paperFormAK[i]=a||'');
+      if(p.multi)p.multi.forEach((m,i)=>paperFormMulti[i]=!!m);
+      else paperFormAK.forEach((a,i)=>{if(a&&a.length>1)paperFormMulti[i]=true;});
+      document.getElementById('pQuickInput').value=paperFormAK.slice(0,p.totalQ).map(a=>(a||'').length>1?a.charAt(0):(a||'')).join('');
+    }else{
+      document.getElementById('pmTitle').innerHTML='<span class="card-icon ci-purple" style="width:28px;height:28px;font-size:.8em">📝</span> 新增試卷';
+      document.getElementById('savePaperBtn').textContent='💾 儲存試卷';
+      document.getElementById('pSet').value='';
+      document.getElementById('pQuickInput').value='';
+      document.getElementById('pDisplayName').value='';
+      updatePaperTermOptions();
+      updateDisplayNameRow();
+    }
+    document.getElementById('pYear').dataset.prev=document.getElementById('pYear').value;
+    document.getElementById('pSubject').dataset.prev=document.getElementById('pSubject').value;
+    buildPaperAKGrid();
+    document.getElementById('soOverlay').classList.add('show');
+    document.getElementById('soPanel').classList.add('show');
+  }
   function closePaperModal(){document.getElementById('soOverlay').classList.remove('show');document.getElementById('soPanel').classList.remove('show');editingPaperId=null;}
-  function openDuplicateModal(id){const p=papers.find(x=>x.id===id);if(!p)return;editingPaperId=null;paperFormAK=new Array(80).fill('');paperFormMulti=new Array(80).fill(false);ensureYearOption(p.year);ensureSubjectOption(p.subject);if(p.answerKey)p.answerKey.forEach((a,i)=>paperFormAK[i]=a||'');if(p.multi)p.multi.forEach((m,i)=>paperFormMulti[i]=!!m);else paperFormAK.forEach((a,i)=>{if(a&&a.length>1)paperFormMulti[i]=true;});document.getElementById('pmTitle').innerHTML='<span class="card-icon ci-purple" style="width:28px;height:28px;font-size:.8em">📋</span> 複製試卷';document.getElementById('savePaperBtn').textContent='💾 儲存試卷';document.getElementById('pYear').value=p.year;document.getElementById('pGrade').value=p.grade||p.className||GRADES[0];document.getElementById('pTerm').value=p.term;document.getElementById('pSet').value=p.set||'';document.getElementById('pSubject').value=p.subject||SUBJECTS[0];document.getElementById('pTotalQ').value=p.totalQ;document.getElementById('pQuickInput').value=paperFormAK.slice(0,p.totalQ).map(a=>(a||'').length>1?a.charAt(0):(a||'')).join('');document.getElementById('pYear').dataset.prev=document.getElementById('pYear').value;document.getElementById('pSubject').dataset.prev=document.getElementById('pSubject').value;buildPaperAKGrid();document.getElementById('soOverlay').classList.add('show');document.getElementById('soPanel').classList.add('show');}
+  function openDuplicateModal(id){
+    const p=papers.find(x=>x.id===id);if(!p)return;
+    editingPaperId=null;
+    paperFormAK=new Array(80).fill('');
+    paperFormMulti=new Array(80).fill(false);
+    ensureYearOption(p.year);ensureSubjectOption(p.subject);
+    if(p.answerKey)p.answerKey.forEach((a,i)=>paperFormAK[i]=a||'');
+    if(p.multi)p.multi.forEach((m,i)=>paperFormMulti[i]=!!m);
+    else paperFormAK.forEach((a,i)=>{if(a&&a.length>1)paperFormMulti[i]=true;});
+    document.getElementById('pmTitle').innerHTML='<span class="card-icon ci-purple" style="width:28px;height:28px;font-size:.8em">📋</span> 複製試卷';
+    document.getElementById('savePaperBtn').textContent='💾 儲存試卷';
+    document.getElementById('pYear').value=p.year;
+    document.getElementById('pGrade').value=p.grade||p.className||GRADES[0];
+    updatePaperTermOptions(p.term);
+    document.getElementById('pDisplayName').value=p.displayName||'';
+    updateDisplayNameRow();
+    document.getElementById('pSet').value=p.set||'';
+    document.getElementById('pSubject').value=p.subject||SUBJECTS[0];
+    document.getElementById('pTotalQ').value=p.totalQ;
+    document.getElementById('pQuickInput').value=paperFormAK.slice(0,p.totalQ).map(a=>(a||'').length>1?a.charAt(0):(a||'')).join('');
+    document.getElementById('pYear').dataset.prev=document.getElementById('pYear').value;
+    document.getElementById('pSubject').dataset.prev=document.getElementById('pSubject').value;
+    buildPaperAKGrid();
+    document.getElementById('soOverlay').classList.add('show');
+    document.getElementById('soPanel').classList.add('show');
+  }
   function getPaperTotalQ(){let v=parseInt(document.getElementById('pTotalQ').value);if(isNaN(v)||v<1)v=1;if(v>80)v=80;return v;}
   function onTotalQChange(){buildPaperAKGrid();}
   function buildPaperAKGrid(){const tq=getPaperTotalQ(),g=document.getElementById('paperAKGrid');g.innerHTML='';for(let q=1;q<=tq;q++){const d=document.createElement('div');d.className='aitem';const cur=paperFormAK[q-1]||'';const isMulti=!!paperFormMulti[q-1];let h=`<span class="qn">Q${q}</span>`;['A','B','C','D'].forEach(o=>{h+=`<span class="o ${cur.indexOf(o)>=0?'sel':''}" onclick="setPaperAK(${q},'${o}')">${o}</span>`;});h+=`<label class="ak-multi-toggle${isMulti?' on':''}" title="多選答案：可選多個正確答案，學生答中任一即得分"><input type="checkbox" ${isMulti?'checked':''} onchange="togglePaperMulti(${q})">多選</label>`;d.innerHTML=h;g.appendChild(d);}}
@@ -67,11 +152,45 @@ function renderPaperTabs(){
   function togglePaperMulti(q){const i=q-1;paperFormMulti[i]=!paperFormMulti[i];if(!paperFormMulti[i]){const cur=paperFormAK[i]||'';if(cur.length>1)paperFormAK[i]=cur.charAt(0);}buildPaperAKGrid();}
   function applyPaperQK(){const v=document.getElementById('pQuickInput').value.toUpperCase().replace(/[^ABCD]/g,'');for(let i=0;i<80;i++){paperFormAK[i]=i<v.length?v[i]:'';paperFormMulti[i]=false;}buildPaperAKGrid();}
   function clearPaperAK(){paperFormAK=new Array(80).fill('');paperFormMulti=new Array(80).fill(false);document.getElementById('pQuickInput').value='';buildPaperAKGrid();}
-  function savePaper(){const year=document.getElementById('pYear').value,grade=document.getElementById('pGrade').value,term=document.getElementById('pTerm').value,paperSet=document.getElementById('pSet').value,subject=document.getElementById('pSubject').value,tq=getPaperTotalQ();if(year==='__add__'||subject==='__add__'){showMsg('⚠️ 請選擇有效的學年及科目');return;}const ak=paperFormAK.slice(0,tq);if(!ak.some(a=>a!=='')){showMsg('⚠️ 請先輸入正確答案');return;}const multi=paperFormMulti.slice(0,tq);const paper={year,grade,term,set:paperSet,subject,totalQ:tq,answerKey:ak,multi,createdAt:new Date().toISOString()};let recalcCount=0;if(editingPaperId){paper.id=editingPaperId;const idx=papers.findIndex(p=>p.id===editingPaperId);if(idx>=0)papers[idx]={...papers[idx],...paper};recalcCount=recalcRecordsForPaper(paper);if(editingPaperId===selectedPaperId){currentTotalQ=tq;currentAnswerKey=new Array(80).fill('');ak.forEach((a,i)=>currentAnswerKey[i]=a||'');}}else{paper.id='local_'+Date.now();papers.push(paper);}savePaperToFB(paper,()=>{renderPaperTabs();renderPaperSelectList();populateSubjectFilter();if(recalcCount>0){renderRecs();saveSettings();}saveToLS();toast(recalcCount>0?`✅ 試卷已儲存，已更新 ${recalcCount} 筆掃描記錄分數`:'✅ 試卷已儲存');closePaperModal();});}
+  function savePaper(){
+    const year=document.getElementById('pYear').value,
+          grade=document.getElementById('pGrade').value,
+          term=document.getElementById('pTerm').value,
+          paperSet=document.getElementById('pSet').value,
+          subject=document.getElementById('pSubject').value,
+          tq=getPaperTotalQ();
+    /* 顯示名稱（選填）：只有中六才會有此欄，其餘級別為空字串 */
+    const dnEl=document.getElementById('pDisplayName');
+    const displayName=dnEl?(dnEl.value||'').trim():'';
+    if(year==='__add__'||subject==='__add__'){showMsg('⚠️ 請選擇有效的學年及科目');return;}
+    const ak=paperFormAK.slice(0,tq);
+    if(!ak.some(a=>a!=='')){showMsg('⚠️ 請先輸入正確答案');return;}
+    const multi=paperFormMulti.slice(0,tq);
+    const paper={year,grade,term,set:paperSet,subject,displayName,totalQ:tq,answerKey:ak,multi,createdAt:new Date().toISOString()};
+    let recalcCount=0;
+    if(editingPaperId){
+      paper.id=editingPaperId;
+      const idx=papers.findIndex(p=>p.id===editingPaperId);
+      if(idx>=0)papers[idx]={...papers[idx],...paper};
+      recalcCount=recalcRecordsForPaper(paper);
+      if(editingPaperId===selectedPaperId){currentTotalQ=tq;currentAnswerKey=new Array(80).fill('');ak.forEach((a,i)=>currentAnswerKey[i]=a||'');}
+    }else{
+      paper.id='local_'+Date.now();
+      papers.push(paper);
+    }
+    savePaperToFB(paper,()=>{
+      renderPaperTabs();renderPaperSelectList();populateSubjectFilter();
+      if(recalcCount>0){renderRecs();saveSettings();}
+      saveToLS();
+      toast(recalcCount>0?`✅ 試卷已儲存，已更新 ${recalcCount} 筆掃描記錄分數`:'✅ 試卷已儲存');
+      closePaperModal();
+      if(selectedPaperId===paper.id)updatePaperBar();
+    });
+  }
   function recalcRecordsForPaper(paper){if(!paper||!paper.id)return 0;const ak=paper.answerKey||[];const lbl=paperLabel(paper);let updated=0;records.forEach(r=>{if(r.paperId!==paper.id)return;const ans=r.ans||'';const totalQ=r.totalQ||ans.length;let c=0,kc=0;for(let i=0;i<totalQ;i++){const key=ak[i]||'';if(!key)continue;kc++;const f=(i<ans.length&&ans[i]!=='-')?ans[i]:'';if(isAnswerCorrect(f,key))c++;}r.sc=kc?`${c}/${kc}`:'-';r.pct=kc?Math.round(c/kc*100)+'%':'-';r.paperLabel=lbl;updated++;});return updated;}
   function deletePaper(id){showConfirm('⚠️ 確定要刪除此試卷嗎？',()=>{papers=papers.filter(p=>p.id!==id);deletePaperFromFB(id,()=>{if(selectedPaperId===id)clearPaperSelection();renderPaperTabs();renderPaperSelectList();populateSubjectFilter();saveToLS();toast('🗑️ 已刪除');});});}
   function filterPaperList(){renderPaperSelectList();}
-  
+
   /* ===== SCAN PAGE: DROPDOWN-BASED PAPER SELECTION ===== */
   function renderScanPaperFilters(){
     const area=document.getElementById('scanPaperFilters');
@@ -121,7 +240,7 @@ function renderPaperTabs(){
     filtered.forEach(p=>{
       const d=document.createElement('div');
       d.className='paper-item'+(selectedPaperId===p.id?' selected':'');
-      d.innerHTML=`<div class="pi-check">✓</div><div class="pi-head"><span class="pi-subject">${p.subject||'—'}</span><span class="pi-grade">${getGradeDisplay(p)}</span></div><div class="pi-tags"><span class="pi-chip pi-chip-term">${p.term||''}</span>${p.set?`<span class="pi-chip pi-chip-set">${p.set}</span>`:''}<span class="pi-chip pi-chip-q">${p.totalQ} 題</span></div>`;
+      d.innerHTML=`<div class="pi-check">✓</div><div class="pi-head"><span class="pi-subject">${p.subject||'—'}</span><span class="pi-grade">${getGradeDisplay(p)}</span></div><div class="pi-tags"><span class="pi-chip pi-chip-term"${p.displayName?` title="學期：${escAttr(p.term||'')}"`:''}>${getPaperTermDisplay(p)}</span>${p.set?`<span class="pi-chip pi-chip-set">${p.set}</span>`:''}<span class="pi-chip pi-chip-q">${p.totalQ} 題</span></div>`;
       d.onclick=()=>selectPaper(p.id);
       box.appendChild(d);
     });
