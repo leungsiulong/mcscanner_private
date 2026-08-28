@@ -17,7 +17,7 @@ function addCustomSubject(prevVal){showPrompt('📚 新增科目','例如 視覺
 function ensureYearOption(y){if(y&&!YEARS.includes(y)){YEARS.push(y);YEARS.sort();refreshYearDropdowns();}}
 function ensureSubjectOption(s){if(s&&!SUBJECTS.includes(s)){const idx=SUBJECTS.indexOf('其他');if(idx>=0)SUBJECTS.splice(idx,0,s);else SUBJECTS.push(s);fillSubjectSelect();}}
 
-function populateDropdowns(){refreshYearDropdowns();const pg=document.getElementById('pGrade');if(pg){const cur=pg.value;pg.innerHTML='';GRADES.forEach(g=>{const o=document.createElement('option');o.value=g;o.textContent=g;pg.appendChild(o);});if(cur)pg.value=cur;}fillSubjectSelect();populateSubjectFilter();}
+function populateDropdowns(){refreshYearDropdowns();const pg=document.getElementById('pGrade');if(pg){const cur=pg.value;pg.innerHTML='';GRADES.forEach(g=>{const o=document.createElement('option');o.value=g;o.textContent=g;pg.appendChild(o);});if(cur)pg.value=cur;}updatePaperTermOptions();updateDisplayNameRow();fillSubjectSelect();populateSubjectFilter();}
 function populateSubjectFilter(){const sel=document.getElementById('filterSubject');if(!sel)return;const cur=sel.value;const subjects=[...new Set(papers.map(p=>p.subject).filter(Boolean))].sort();sel.innerHTML='<option value="">全部科目</option>';subjects.forEach(s=>{const o=document.createElement('option');o.value=s;o.textContent=s;sel.appendChild(o);});sel.value=cur;}
 function showMsg(s){document.getElementById('modalMsg').innerHTML=s;document.getElementById('modalBtns').innerHTML='<button class="btn btn-p" onclick="closeModal()">確定</button>';document.getElementById('modal').classList.add('show');}
 function showConfirm(msg,onYes){document.getElementById('modalMsg').innerHTML=msg;document.getElementById('modalBtns').innerHTML='<button class="btn btn-danger" id="modalYes">確認</button><button class="btn btn-s" onclick="closeModal()">取消</button>';document.getElementById('modal').classList.add('show');document.getElementById('modalYes').onclick=()=>{closeModal();onYes();};}
@@ -27,3 +27,7 @@ function toast(s){const t=document.getElementById('toast');t.textContent=s;t.cla
 function getGradeDisplay(p){return p.grade||p.className||'—';}
 function paperLabel(p){let l=`${p.year} · ${getGradeDisplay(p)} · ${p.term}`;if(p.set)l+=` · ${p.set}`;l+=` · ${p.subject||''} (${p.totalQ}題)`;return l;}
 function updatePaperBar(){const bar=document.getElementById('paperBarScan');if(selectedPaperId){const p=papers.find(x=>x.id===selectedPaperId);let txt=p?paperLabel(p):'—';if(selectedScanClass)txt+=` · ${selectedScanClass}`;bar.className='paper-bar has-paper';bar.innerHTML=`✅ <strong>${txt}</strong>`;}else{bar.className='paper-bar';bar.innerHTML='📋 尚未選擇試卷';}}
+
+/* 有填顯示名稱就用顯示名稱，否則用學期 */
+function getPaperTermDisplay(p){return (p&&p.displayName&&String(p.displayName).trim())?String(p.displayName).trim():(p?p.term||'':'');}
+function paperLabel(p){let l=`${p.year} · ${getGradeDisplay(p)} · ${getPaperTermDisplay(p)}`;if(p.set)l+=` · ${p.set}`;l+=` · ${p.subject||''} (${p.totalQ}題)`;return l;}
