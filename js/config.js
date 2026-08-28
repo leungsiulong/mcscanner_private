@@ -1,5 +1,5 @@
 /* ===== config.js — GLOBAL STATE & CONSTANTS ===== */
-const CW=1000,CH=1414,LS_KEY='omrV6',LS_IMG='omrV6_img';
+const CW=1000,CH=1414,LS_KEY='omrV6_private',LS_IMG='omrV6_private_img';
 let srcImg=null,corrCanvas=null,corrGray=null;
 let corners=[{x:50,y:50},{x:750,y:50},{x:750,y:1050},{x:50,y:1050}];
 let cornerRatios=null,dragIdx=-1,cScale=1;
